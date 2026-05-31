@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Levantamento de Ocupação Máxima – SENAI/MS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --senai-blue:   #003DA5;
+      --senai-light:  #1A5BCC;
+      --accent:       #F5A623;
+      --danger:       #D93025;
+      --success:      #1E8C45;
+      --bg:           #F4F6FB;
+      --card:         #FFFFFF;
+      --border:       #D9E0EE;
+      --text:         #1A1F36;
+      --muted:        #6B7A99;
+      --radius:       10px;
+      --shadow:       0 2px 12px rgba(0,61,165,.08);
+      --shadow-hover: 0 6px 24px rgba(0,61,165,.16);
+      --transition:   .2s cubic-bezier(.4,0,.2,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* HEADER */
+    .site-header {
+      background: var(--senai-blue);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Sora', sans-serif;
+      color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .04em;
+    }
+    .header-brand span { opacity: .6; font-weight: 400; }
+    .header-badge {
+      background: rgba(255,255,255,.15); color: #fff;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px; letter-spacing: .06em;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--senai-blue) 0%, var(--senai-light) 100%);
+      padding: 36px 24px 32px; color: #fff;
+    }
+    .hero-inner { max-width: 860px; margin: 0 auto; }
+    .hero-kicker { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin-bottom: 6px; }
+    .hero-title  { font-family: 'Sora', sans-serif; font-size: clamp(22px,4vw,32px); font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+    .hero-sub    { font-size: 14px; opacity: .75; }
+    .hero-meta   { margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-tag {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 20px; padding: 4px 12px; font-size: 12px;
+    }
+    .progress-bar-wrap { height: 4px; background: rgba(255,255,255,.2); border-radius: 2px; margin-top: 16px; }
+    .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+
+    /* NAV TABS */
+    .nav-tabs { background: var(--card); border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 14px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--muted); background: none; border: none; cursor: pointer;
+      border-bottom: 3px solid transparent; transition: var(--transition);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .tab-btn:hover { color: var(--senai-blue); background: rgba(0,61,165,.04); }
+    .tab-btn.active { color: var(--senai-blue); border-bottom-color: var(--senai-blue); font-weight: 600; }
+    .tab-btn .ico { font-size: 15px; }
+
+    /* MAIN */
+    .main { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
+
+    /* CARDS */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+    .card-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .card-header-icon { width: 32px; height: 32px; background: rgba(0,61,165,.08); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .card-header-text h2 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 600; }
+    .card-header-text p  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .card-body { padding: 20px; }
+
+    /* FORM GRID */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .col-full { grid-column: 1 / -1; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .col-full { grid-column: 1; } }
+
+    /* FIELDS */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+    .field label .req { color: var(--danger); margin-left: 2px; }
+    input[type=text], input[type=date], input[type=number], select, textarea {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text);
+      background: #fff; transition: border-color var(--transition), box-shadow var(--transition);
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--senai-blue); box-shadow: 0 0 0 3px rgba(0,61,165,.12); }
+    input::placeholder, textarea::placeholder { color: #BEC8E0; }
+    textarea { resize: vertical; min-height: 80px; }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7A99' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
+    }
+
+    /* PHOTO UPLOAD */
+    .photo-drop {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 28px; text-align: center; cursor: pointer; transition: var(--transition); background: #F9FAFD;
+    }
+    .photo-drop:hover { border-color: var(--senai-blue); background: rgba(0,61,165,.03); }
+    .photo-drop .drop-icon { font-size: 28px; margin-bottom: 8px; }
+    .photo-drop p   { font-size: 13px; color: var(--muted); }
+    .photo-drop small { font-size: 11px; color: #BEC8E0; display: block; margin-top: 4px; }
+    #photo-input { display: none; }
+    .photo-previews { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .photo-thumb { position: relative; width: 80px; height: 80px; border-radius: 7px; overflow: hidden; border: 1.5px solid var(--border); }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-thumb button {
+      position: absolute; top: 3px; right: 3px;
+      background: rgba(0,0,0,.55); color: #fff; border: none; border-radius: 50%;
+      width: 18px; height: 18px; font-size: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* SPACES LIST */
+    .spaces-list { display: flex; flex-direction: column; gap: 10px; }
+    .space-item { border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 14px; background: #F9FAFD; animation: slideIn .25s ease; }
+    @keyframes slideIn { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: translateY(0); } }
+    .space-num { width: 28px; height: 28px; flex-shrink: 0; background: var(--senai-blue); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+    .space-info { flex: 1; min-width: 0; }
+    .space-info strong { font-size: 14px; display: block; }
+    .space-info span { font-size: 12px; color: var(--muted); }
+    .space-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px; padding: 4px; border-radius: 5px; transition: var(--transition); }
+    .space-del:hover { color: var(--danger); background: rgba(217,48,37,.08); }
+
+    /* BUTTONS */
+    .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: var(--transition); }
+    .btn-ghost { background: none; border: 1.5px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover { border-color: var(--senai-blue); color: var(--senai-blue); }
+    .btn-primary { background: var(--senai-blue); color: #fff; }
+    .btn-primary:hover { background: var(--senai-light); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+    .btn-submit { background: linear-gradient(135deg, var(--senai-blue), var(--senai-light)); color: #fff; padding: 12px 28px; font-size: 15px; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,61,165,.3); }
+    .btn:disabled { opacity: .5; pointer-events: none; }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--text); color: #fff;
+      padding: 12px 20px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,.25);
+      z-index: 9999;
+      transform: translateY(80px); opacity: 0;
+      transition: .35s cubic-bezier(.4,0,.2,1);
+      max-width: 320px;
+    }
+    #toast.show    { transform: translateY(0); opacity: 1; }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
+
+    /* SPINNER */
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* SECTION DIVIDER */
+    .section-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 28px 20px; color: var(--muted); }
+    .empty-state .es-icon { font-size: 32px; margin-bottom: 8px; }
+    .empty-state p { font-size: 13px; }
+
+    /* TAB PANELS */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="4" fill="rgba(255,255,255,.15)"/><path d="M5 19V8l7-4 7 4v11H5z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><rect x="9" y="13" width="2" height="6" fill="#fff" opacity=".7"/><rect x="13" y="13" width="2" height="6" fill="#fff" opacity=".7"/></svg>
+    SENAI <span>/ MS</span>
+  </div>
+  <span class="header-badge">Ciclo 2025</span>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <p class="hero-kicker">Sistema de Gestão de Capacidade</p>
+    <h1 class="hero-title">Levantamento de Ocupação Máxima</h1>
+    <p class="hero-sub">Cadastro e gestão de capacidade de espaços educacionais</p>
+    <div class="hero-meta">
+      <span class="hero-tag">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="rgba(255,255,255,.8)" stroke-width="1.2"/><path d="M6 3v3l2 2" stroke="rgba(255,255,255,.8)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Em andamento
+      </span>
+      <span class="hero-tag">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1L7.5 4.5H11L8.5 7 9.5 10.5 6 8.5l-3.5 2L3.5 7 1 4.5h3.5L6 1z" stroke="rgba(255,255,255,.8)" stroke-width="1" fill="none"/></svg>
+        <span id="spaces-count">0 espaços</span> cadastrados
+      </span>
+      <span class="hero-tag" id="hero-unit-name">📍 Selecione a unidade</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="switchTab('form')" id="tab-form"><span class="ico">📋</span> Cadastro de Espaços</button>
+  <button class="tab-btn" onclick="switchTab('list')" id="tab-list"><span class="ico">🏫</span> Espaços Adicionados</button>
+  <button class="tab-btn" onclick="switchTab('review')" id="tab-review"><span class="ico">✅</span> Revisar e Enviar</button>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TAB: FORMULÁRIO -->
+  <div class="tab-panel active" id="panel-form">
+
+    <!-- Identificação da Unidade -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon">🏢</div>
+        <div class="card-header-text">
+          <h2>Identificação da Unidade</h2>
+          <p>Preencha os dados gerais do levantamento</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Unidade SENAI <span class="req">*</span></label>
+            <select id="f-unidade" onchange="updateHeroUnit()">
+              <option value="">Selecione a unidade...</option>
+              <option>Agência SENAI Nova Andradina</option>
+              <option>APARECIDA DO TABOADO</option>
+              <option>CAMPO GRANDE</option>
+              <option>CORUMBÁ</option>
+              <option>DOURADOS</option>
+              <option>FACULDADE DE CONSTRUÇÃO</option>
+              <option>MARACAJU</option>
+              <option>NAVIRAI</option>
+              <option>RIO VERDE</option>
+              <option>SIDRÔLANDIA</option>
+              <option>SONORA</option>
+              <option>TRÊS LAGOAS</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Responsável pelo preenchimento <span class="req">*</span></label>
+            <input type="text" id="f-responsavel" placeholder="Nome completo" />
+          </div>
+          <div class="field">
+            <label>Cargo / Função</label>
+            <input type="text" id="f-cargo" placeholder="Ex: Coordenador Pedagógico" />
+          </div>
+          <div class="field">
+            <label>Data do levantamento <span class="req">*</span></label>
+            <input type="date" id="f-data" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cadastrar Novo Espaço -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon">🚪</div>
+        <div class="card-header-text">
+          <h2>Cadastrar Novo Espaço</h2>
+          <p>Adicione salas, laboratórios, quadras e demais ambientes</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Nome / Identificação do Espaço <span class="req">*</span></label>
+            <input type="text" id="e-nome" placeholder="Ex: Sala 01, Lab. Elétrica, Quadra Poliesportiva" />
+          </div>
+          <div class="field">
+            <label>Tipo de Espaço <span class="req">*</span></label>
+            <select id="e-tipo">
+              <option value="">Selecione...</option>
+              <option>Sala de Aula</option>
+              <option>Laboratório</option>
+              <option>Oficina / Ateliê</option>
+              <option>Quadra / Ginásio</option>
+              <option>Auditório</option>
+              <option>Biblioteca</option>
+              <option>Sala de Informática</option>
+              <option>Sala de Reuniões</option>
+              <option>Refeitório</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Bloco / Pavimento</label>
+            <input type="text" id="e-bloco" placeholder="Ex: Bloco A / Térreo" />
+          </div>
+          <div class="field">
+            <label>Capacidade máxima (alunos) <span class="req">*</span></label>
+            <input type="number" id="e-capacidade" placeholder="Ex: 30" min="1" />
+          </div>
+          <div class="field">
+            <label>Área aproximada (m²)</label>
+            <input type="number" id="e-area" placeholder="Ex: 60" min="1" />
+          </div>
+          <div class="field">
+            <label>Acessibilidade</label>
+            <select id="e-acessibilidade">
+              <option value="">Selecione...</option>
+              <option>Acessível</option>
+              <option>Parcialmente acessível</option>
+              <option>Não acessível</option>
+            </select>
+          </div>
+          <div class="field col-full">
+            <label>Equipamentos / Recursos disponíveis</label>
+            <textarea id="e-equipamentos" rows="2" placeholder="Ex: Projetor, ar-condicionado, bancadas, tomadas industriais"></textarea>
+          </div>
+          <div class="field col-full">
+            <label>Observações / Restrições</label>
+            <textarea id="e-observacoes" rows="2" placeholder="Ex: Sala com pia para laboratório de química. Necessita de reforma no teto."></textarea>
+          </div>
+        </div>
+
+        <!-- Foto -->
+        <div style="margin-top:16px;">
+          <div class="section-label">Registro Fotográfico</div>
+          <div class="photo-drop" onclick="document.getElementById('photo-input').click()">
+            <div class="drop-icon">📷</div>
+            <p>Clique para adicionar fotos do espaço</p>
+            <small>JPG, PNG — recomendado: frontal + fundo + lateral</small>
+          </div>
+          <input type="file" id="photo-input" accept="image/jpeg,image/png" multiple onchange="handlePhotos(event)" />
+          <div class="photo-previews" id="photo-previews"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="clearSpaceForm()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Limpar
+          </button>
+          <button class="btn btn-primary" onclick="addSpace()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            + Adicionar Espaço
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: LISTA -->
+  <div class="tab-panel" id="panel-list">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon">🏫</div>
+        <div class="card-header-text">
+          <h2>Espaços Adicionados</h2>
+          <p id="list-subtitle">Nenhum espaço cadastrado ainda</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="spaces-list" id="spaces-list">
+          <div class="empty-state">
+            <div class="es-icon">🏗️</div>
+            <p>Nenhum espaço adicionado ainda.<br>Vá para a aba <strong>Cadastro de Espaços</strong> para começar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: REVISAR -->
+  <div class="tab-panel" id="panel-review">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon">📤</div>
+        <div class="card-header-text">
+          <h2>Revisar e Enviar</h2>
+          <p>Confira os dados antes de salvar no Google Sheets</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="review-content">
+          <div class="empty-state">
+            <div class="es-icon">📋</div>
+            <p>Preencha o formulário antes de revisar.</p>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:24px;">
+          <button class="btn btn-ghost" onclick="switchTab('form')">← Voltar e editar</button>
+          <button class="btn btn-submit" id="btn-submit" onclick="submitAll()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 8l-6 6-6-6M8 2v12" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Enviar para Google Sheets
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+  // ── CONFIGURAÇÃO ─────────────────────────────────────────────────────────
+  // Cole aqui a URL gerada após publicar o Code.gs como Web App no Apps Script
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwewYDt248pLinPoZYVfHNbOmAqDx2Wqj2aZZx2hySlmp2LGG7HPWkCE_9KNSmdW1qp/exec";
+  // ─────────────────────────────────────────────────────────────────────────
+
+  let spaces     = [];
+  let photoFiles = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
+  });
+
+  // ── TABS ──────────────────────────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    document.getElementById('tab-'   + name).classList.add('active');
+    if (name === 'review') buildReview();
+  }
+
+  // ── HERO ──────────────────────────────────────────────────────────────────
+  function updateHeroUnit() {
+    const v = document.getElementById('f-unidade').value;
+    document.getElementById('hero-unit-name').textContent = v ? '📍 ' + v : '📍 Selecione a unidade';
+  }
+
+  // ── FOTOS ─────────────────────────────────────────────────────────────────
+  function handlePhotos(e) {
+    Array.from(e.target.files).forEach(f => { if (f.type.startsWith('image/')) photoFiles.push(f); });
+    renderPhotoPreviews();
+  }
+  function renderPhotoPreviews() {
+    const c = document.getElementById('photo-previews');
+    c.innerHTML = photoFiles.map((f,i) => `
+      <div class="photo-thumb">
+        <img src="${URL.createObjectURL(f)}" />
+        <button onclick="removePhoto(${i})">✕</button>
+      </div>`).join('');
+  }
+  function removePhoto(i) { photoFiles.splice(i,1); renderPhotoPreviews(); }
+
+  // ── ADD ESPAÇO ────────────────────────────────────────────────────────────
+  function addSpace() {
+    const nome       = document.getElementById('e-nome').value.trim();
+    const tipo       = document.getElementById('e-tipo').value;
+    const bloco      = document.getElementById('e-bloco').value.trim();
+    const capacidade = document.getElementById('e-capacidade').value;
+    const area       = document.getElementById('e-area').value;
+    const equip      = document.getElementById('e-equipamentos').value.trim();
+    const acess      = document.getElementById('e-acessibilidade').value;
+    const obs        = document.getElementById('e-observacoes').value.trim();
+
+    if (!nome)       { showToast('⚠️ Informe o nome do espaço.','error'); return; }
+    if (!tipo)       { showToast('⚠️ Selecione o tipo de espaço.','error'); return; }
+    if (!capacidade) { showToast('⚠️ Informe a capacidade máxima.','error'); return; }
+
+    spaces.push({ nome, tipo, bloco, capacidade: +capacidade,
+                  area: area ? +area : null,
+                  equipamentos: equip, acessibilidade: acess, observacoes: obs,
+                  photos: [...photoFiles] });
+
+    updateSpacesList();
+    updateCounter();
+    clearSpaceForm();
+    showToast('✅ Espaço "' + nome + '" adicionado!', 'success');
+  }
+
+  function clearSpaceForm() {
+    ['e-nome','e-bloco','e-capacidade','e-area','e-equipamentos','e-observacoes']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('e-tipo').value = '';
+    document.getElementById('e-acessibilidade').value = '';
+    photoFiles = [];
+    document.getElementById('photo-previews').innerHTML = '';
+    document.getElementById('photo-input').value = '';
+  }
+
+  // ── LISTA ─────────────────────────────────────────────────────────────────
+  function updateSpacesList() {
+    const c   = document.getElementById('spaces-list');
+    const sub = document.getElementById('list-subtitle');
+    if (!spaces.length) {
+      c.innerHTML = `<div class="empty-state"><div class="es-icon">🏗️</div><p>Nenhum espaço adicionado ainda.</p></div>`;
+      sub.textContent = 'Nenhum espaço cadastrado ainda';
+      return;
+    }
+    sub.textContent = spaces.length + ' espaço(s) cadastrado(s)';
+    c.innerHTML = spaces.map((s,i) => `
+      <div class="space-item">
+        <div class="space-num">${i+1}</div>
+        <div class="space-info">
+          <strong>${s.nome}</strong>
+          <span>${s.tipo} · Cap: ${s.capacidade} alunos${s.bloco ? ' · '+s.bloco : ''}${s.photos.length ? ' · 📷 '+s.photos.length+' foto(s)' : ''}</span>
+        </div>
+        <button class="space-del" onclick="removeSpace(${i})" title="Remover">🗑</button>
+      </div>`).join('');
+  }
+
+  function removeSpace(i) {
+    const nome = spaces[i].nome;
+    spaces.splice(i,1);
+    updateSpacesList();
+    updateCounter();
+    showToast('🗑 Espaço "' + nome + '" removido.', '');
+  }
+
+  function updateCounter() {
+    document.getElementById('spaces-count').textContent = spaces.length + ' espaço' + (spaces.length !== 1 ? 's' : '');
+    document.getElementById('progress-fill').style.width = Math.min(100,(spaces.length/5)*100) + '%';
+  }
+
+  // ── REVIEW ────────────────────────────────────────────────────────────────
+  function buildReview() {
+    const unidade = document.getElementById('f-unidade').value || '–';
+    const resp    = document.getElementById('f-responsavel').value || '–';
+    const cargo   = document.getElementById('f-cargo').value || '–';
+    const data    = document.getElementById('f-data').value || '–';
+
+    const rows = spaces.map((s,i) => `
+      <tr style="background:${i%2===0?'#F9FAFD':'#fff'}">
+        <td style="padding:8px 10px;font-weight:600">${s.nome}</td>
+        <td style="padding:8px 10px">${s.tipo}</td>
+        <td style="padding:8px 10px;text-align:center">${s.capacidade}</td>
+        <td style="padding:8px 10px">${s.acessibilidade||'–'}</td>
+        <td style="padding:8px 10px;text-align:center">${s.photos.length}</td>
+      </tr>`).join('');
+
+    document.getElementById('review-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:20px">
+        ${rv('Unidade',unidade)} ${rv('Responsável',resp)}
+        ${rv('Cargo',cargo)} ${rv('Data',data)}
+        ${rv('Total de espaços', spaces.length + ' cadastrado(s)')}
+      </div>
+      ${spaces.length === 0
+        ? '<div class="empty-state"><div class="es-icon">⚠️</div><p>Nenhum espaço foi adicionado.</p></div>'
+        : `<table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <thead><tr style="background:var(--senai-blue);color:#fff">
+              <th style="padding:9px 10px;text-align:left">Nome</th>
+              <th style="padding:9px 10px;text-align:left">Tipo</th>
+              <th style="padding:9px 10px;text-align:center">Cap.</th>
+              <th style="padding:9px 10px;text-align:left">Acessib.</th>
+              <th style="padding:9px 10px;text-align:center">📷</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`}`;
+  }
+
+  function rv(label, val) {
+    return `<div><p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px">${label}</p><p style="font-size:14px;font-weight:500">${val}</p></div>`;
+  }
+
+  // ── SUBMIT → GOOGLE SHEETS + DRIVE ───────────────────────────────────────
+  async function submitAll() {
+    const unidade = document.getElementById('f-unidade').value;
+    const resp    = document.getElementById('f-responsavel').value.trim();
+    const cargo   = document.getElementById('f-cargo').value.trim();
+    const data    = document.getElementById('f-data').value;
+
+    if (!unidade)          { showToast('⚠️ Selecione a unidade.','error');        switchTab('form'); return; }
+    if (!resp)             { showToast('⚠️ Informe o responsável.','error');       switchTab('form'); return; }
+    if (!data)             { showToast('⚠️ Informe a data.','error');              switchTab('form'); return; }
+    if (!spaces.length)    { showToast('⚠️ Adicione pelo menos um espaço.','error'); return; }
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Preparando envio...';
+
+    try {
+      // Converte todas as fotos para base64
+      const spacesData = await Promise.all(spaces.map(async (s, idx) => {
+        btn.innerHTML = `<div class="spinner"></div> Processando espaço ${idx+1}/${spaces.length}...`;
+        const arquivos = await Promise.all(s.photos.map(fileToBase64));
+        return {
+          nome:          s.nome,
+          tipo:          s.tipo,
+          bloco:         s.bloco,
+          capacidade:    s.capacidade,
+          area:          s.area,
+          equipamentos:  s.equipamentos,
+          acessibilidade: s.acessibilidade,
+          observacoes:   s.observacoes,
+          arquivos
+        };
+      }));
+
+      btn.innerHTML = '<div class="spinner"></div> Enviando para o Google Drive...';
+
+      const payload = { unidade, responsavel: resp, cargo, data, espacos: spacesData };
+
+      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const json = await res.json();
+
+      if (json.status === 'ok') {
+        showToast('✅ ' + spaces.length + ' espaço(s) enviado(s)! Protocolo: ' + json.protocolo, 'success');
+        spaces = [];
+        updateSpacesList();
+        updateCounter();
+        ['f-unidade','f-responsavel','f-cargo','f-data'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el.tagName === 'SELECT') el.value = '';
+          else el.value = id === 'f-data' ? new Date().toISOString().split('T')[0] : '';
+        });
+        updateHeroUnit();
+        switchTab('list');
+      } else {
+        throw new Error(json.message || 'Erro desconhecido');
+      }
+    } catch(err) {
+      console.error(err);
+      showToast('❌ Erro ao enviar. Verifique a URL do Apps Script.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 8l-6 6-6-6M8 2v12" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Enviar para Google Sheets';
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload  = () => res({ name: file.name, type: file.type, data: r.result.split(',')[1] });
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + (type||'');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.className = '', 3500);
+  }
+</script>
+</body>
+</html>
