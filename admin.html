@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Administrativo – SENAI/MS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    :root {
+      --senai-blue:   #003DA5;
+      --senai-light:  #1A5BCC;
+      --accent:       #F5A623;
+      --danger:       #D93025;
+      --success:      #1E8C45;
+      --bg:           #F4F6FB;
+      --card:         #FFFFFF;
+      --border:       #D9E0EE;
+      --text:         #1A1F36;
+      --muted:        #6B7A99;
+      --radius:       10px;
+      --shadow:       0 2px 12px rgba(0,61,165,.08);
+      --transition:   .2s cubic-bezier(.4,0,.2,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .site-header {
+      background: var(--senai-blue); padding: 0 24px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; font-family: 'Sora', sans-serif; color: #fff; font-size: 14px; font-weight: 600; }
+    .header-brand span { opacity: .6; font-weight: 400; }
+    .header-badge { background: rgba(245,166,35,.25); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .06em; }
+    .btn-sair { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 7px; padding: 7px 14px; font-size: 12px; cursor: pointer; display: none; }
+    .btn-sair:hover { background: rgba(255,255,255,.2); }
+
+    /* LOGIN */
+    #login-screen { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .login-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 36px 32px; max-width: 380px; width: 100%; text-align: center; }
+    .login-card h1 { font-family: 'Sora', sans-serif; font-size: 18px; margin-bottom: 6px; }
+    .login-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    #gsi-button { display: flex; justify-content: center; }
+    .login-hint { font-size: 12px; color: var(--muted); margin-top: 18px; }
+    .login-error { font-size: 13px; color: var(--danger); margin-top: 14px; display: none; }
+
+    /* ADMIN SHELL */
+    #admin-screen { display: none; max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
+
+    .toolbar { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 18px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+    .toolbar select, .toolbar input[type=text] { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: #fff; }
+    .toolbar label.chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); cursor: pointer; }
+    .toolbar .count { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    .grupo-unidade { margin-bottom: 22px; }
+    .grupo-unidade h2 { font-family: 'Sora', sans-serif; font-size: 14px; color: var(--senai-blue); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+
+    .registro-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+    .registro-head { padding: 14px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .registro-head strong { font-size: 14px; }
+    .registro-head .meta { font-size: 12px; color: var(--muted); }
+    .registro-head .badges { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em; }
+    .badge-warn { background: #FFF1DC; color: #B5720A; }
+    .badge-danger { background: #FBE3E1; color: var(--danger); }
+    .badge-ok { background: #E4F5EA; color: var(--success); }
+
+    .registro-body { display: none; padding: 0 18px 18px; border-top: 1px solid var(--border); }
+    .registro-card.aberto .registro-body { display: block; }
+
+    .campos-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0; }
+    @media (max-width: 760px) { .campos-grid { grid-template-columns: 1fr 1fr; } }
+    .campo label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 4px; }
+    .campo input, .campo select, .campo textarea { width: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: #fff; }
+    .campo textarea { min-height: 56px; resize: vertical; }
+    .campo.col-2 { grid-column: span 2; }
+    .campo.col-3 { grid-column: 1 / -1; }
+
+    .fotos-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .foto-thumb { position: relative; width: 92px; height: 92px; border-radius: 7px; overflow: hidden; border: 1.5px solid var(--border); background: #F0F3F9; }
+    .foto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .foto-thumb .foto-actions { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0; transition: var(--transition); }
+    .foto-thumb:hover .foto-actions { opacity: 1; }
+    .foto-thumb button { background: #fff; border: none; border-radius: 5px; width: 26px; height: 26px; font-size: 12px; cursor: pointer; }
+    .foto-thumb.duplicada::after { content: 'duplicada'; position: absolute; bottom: 0; left: 0; right: 0; background: var(--danger); color: #fff; font-size: 9px; text-align: center; padding: 2px 0; }
+    .foto-add { width: 92px; height: 92px; border: 2px dashed var(--border); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--muted); cursor: pointer; background: #F9FAFD; }
+    .foto-add:hover { border-color: var(--senai-blue); color: var(--senai-blue); }
+    .foto-add input { display: none; }
+
+    .btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn { padding: 8px 16px; border-radius: 7px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+    .btn-primary { background: var(--senai-blue); color: #fff; }
+    .btn-primary:hover { background: var(--senai-light); }
+    .btn-ghost { background: none; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none; transition: var(--transition); z-index: 200; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.error { background: var(--danger); }
+    #toast.success { background: var(--success); }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-brand">SENAI/MS <span>· Levantamento de Ocupação</span></div>
+  <div class="header-badge">ADMIN</div>
+  <button class="btn-sair" id="btn-sair" onclick="sair()">Sair</button>
+</header>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Painel Administrativo</h1>
+    <p>Acesso restrito. Entre com uma conta Google autorizada para editar registros e fotos.</p>
+    <div id="gsi-button"></div>
+    <p class="login-error" id="login-error"></p>
+    <p class="login-hint">Seu e-mail precisa estar na lista de administradores liberados.</p>
+  </div>
+</div>
+
+<main id="admin-screen">
+  <div class="toolbar">
+    <select id="f-unidade" onchange="render()">
+      <option value="">Todas as unidades</option>
+    </select>
+    <input type="text" id="f-busca" placeholder="Buscar por nome do espaço..." oninput="render()" />
+    <label class="chk"><input type="checkbox" id="f-sem-fotos" onchange="render()" /> Só sem fotos</label>
+    <span class="count" id="contador"></span>
+  </div>
+
+  <div id="lista"></div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  // ── CONFIGURAÇÃO ─────────────────────────────────────────────────────────
+  // Mesma URL publicada do Apps Script (formulario-ocupacao.html usa a mesma).
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwg7uMGXz4ysxi34XHljo_luJhhBnGdb7daI4sxGqkbz--tVUEn94zLPDpPaGXwq5Gy/exec";
+  // Client ID OAuth criado no Google Cloud Console (ver README > Configuração do Painel Admin).
+  const GOOGLE_CLIENT_ID = "SUBSTITUA_PELO_SEU_CLIENT_ID.apps.googleusercontent.com";
+  // ─────────────────────────────────────────────────────────────────────────
+
+  let idToken = null;
+  let registros = [];
+  const cardsAbertos = new Set();
+
+  window.addEventListener('load', () => {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('gsi-button'),
+      { theme: 'outline', size: 'large', text: 'signin_with', locale: 'pt-BR' }
+    );
+  });
+
+  async function handleCredentialResponse(response) {
+    idToken = response.credential;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    try {
+      await carregarRegistros();
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-screen').style.display = 'block';
+      document.getElementById('btn-sair').style.display = 'inline-block';
+    } catch (err) {
+      idToken = null;
+      errEl.textContent = '❌ ' + err.message;
+      errEl.style.display = 'block';
+    }
+  }
+
+  function sair() {
+    idToken = null;
+    registros = [];
+    document.getElementById('admin-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('btn-sair').style.display = 'none';
+    google.accounts.id.disableAutoSelect();
+  }
+
+  // ── COMUNICAÇÃO COM O BACKEND ────────────────────────────────────────────
+  async function chamarAdmin(action, extra) {
+    if (!idToken) throw new Error('Sessão expirada. Faça login novamente.');
+    const body = Object.assign({ action, idToken }, extra || {});
+    const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(body) });
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message || 'Erro desconhecido.');
+    return json;
+  }
+
+  async function carregarRegistros() {
+    const json = await chamarAdmin('listarRegistros');
+    registros = json.registros;
+    montarFiltroUnidades();
+    render();
+  }
+
+  function montarFiltroUnidades() {
+    const sel = document.getElementById('f-unidade');
+    const atual = sel.value;
+    const unidades = [...new Set(registros.map(r => r.unidade).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">Todas as unidades</option>' +
+      unidades.map(u => `<option value="${u}">${u}</option>`).join('');
+    sel.value = atual;
+  }
+
+  // ── RENDERIZAÇÃO ──────────────────────────────────────────────────────────
+  function render() {
+    const unidadeFiltro = document.getElementById('f-unidade').value;
+    const busca = document.getElementById('f-busca').value.trim().toLowerCase();
+    const semFotos = document.getElementById('f-sem-fotos').checked;
+
+    let filtrados = registros.filter(r => {
+      if (unidadeFiltro && r.unidade !== unidadeFiltro) return false;
+      if (busca && !(r.nome || '').toLowerCase().includes(busca)) return false;
+      if (semFotos && r.fotos.length > 0) return false;
+      return true;
+    });
+
+    document.getElementById('contador').textContent =
+      filtrados.length + ' de ' + registros.length + ' registro(s)';
+
+    const lista = document.getElementById('lista');
+
+    if (filtrados.length === 0) {
+      lista.innerHTML = '<div class="empty-state">Nenhum registro encontrado com esse filtro.</div>';
+      return;
+    }
+
+    const grupos = {};
+    filtrados.forEach(r => {
+      const chave = r.unidade || '—';
+      (grupos[chave] = grupos[chave] || []).push(r);
+    });
+
+    lista.innerHTML = Object.keys(grupos).sort().map(unidade => `
+      <div class="grupo-unidade">
+        <h2>${unidade} · ${grupos[unidade].length} espaço(s)</h2>
+        ${grupos[unidade].map(r => cardRegistro(r)).join('')}
+      </div>
+    `).join('');
+  }
+
+  function idFotoDrive(url) {
+    const m = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/) || String(url).match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return m ? m[1] : null;
+  }
+
+  function cardRegistro(r) {
+    const semFoto = r.fotos.length === 0;
+    const duplicadas = new Set(
+      r.fotos.filter((url, i) => r.fotos.indexOf(url) !== i)
+    );
+
+    const badges = [];
+    if (semFoto) badges.push('<span class="badge badge-warn">Sem fotos</span>');
+    if (duplicadas.size > 0) badges.push('<span class="badge badge-danger">Foto duplicada</span>');
+    if (!semFoto && duplicadas.size === 0) badges.push('<span class="badge badge-ok">OK</span>');
+
+    return `
+      <div class="registro-card${cardsAbertos.has(r.id) ? ' aberto' : ''}" id="card-${r.id}">
+        <div class="registro-head" onclick="toggleCard('${r.id}')">
+          <div>
+            <strong>${r.nome || '(sem nome)'}</strong><br>
+            <span class="meta">${r.tipo || '–'} · Cap: ${r.capacidade || '–'}${r.bloco ? ' · ' + r.bloco : ''} · ${r.fotos.length} foto(s)</span>
+          </div>
+          <div class="badges">${badges.join('')}</div>
+        </div>
+        <div class="registro-body">
+          <div class="campos-grid">
+            ${campo(r, 'nome', 'Nome do espaço')}
+            ${campo(r, 'tipo', 'Tipo')}
+            ${campo(r, 'bloco', 'Bloco / Pavimento')}
+            ${campo(r, 'capacidade', 'Capacidade', 'number')}
+            ${campo(r, 'area', 'Área (m²)', 'number')}
+            ${campo(r, 'acessibilidade', 'Acessibilidade')}
+            ${campoSelect(r, 'status', 'Status', ['Em andamento', 'Concluído', 'Pendente revisão'])}
+            ${campo(r, 'equipamentos', 'Equipamentos', 'textarea', 'col-3')}
+            ${campo(r, 'observacoes', 'Observações', 'textarea', 'col-3')}
+          </div>
+
+          <div class="fotos-row" id="fotos-${r.id}">
+            ${r.fotos.map(url => fotoThumb(r.id, url, duplicadas.has(url))).join('')}
+            <label class="foto-add">
+              +
+              <input type="file" accept="image/jpeg,image/png" onchange="adicionarFoto('${r.id}', this)" />
+            </label>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="toggleCard('${r.id}')">Fechar</button>
+            <button class="btn btn-primary" onclick="salvarRegistro('${r.id}')">Salvar alterações</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function campo(r, chave, label, tipo, extraClass) {
+    const valor = (r[chave] ?? '').toString().replace(/"/g, '&quot;');
+    const cls = 'campo' + (extraClass ? ' ' + extraClass : '');
+    if (tipo === 'textarea') {
+      return `<div class="${cls}"><label>${label}</label><textarea data-campo="${chave}">${valor}</textarea></div>`;
+    }
+    return `<div class="${cls}"><label>${label}</label><input type="${tipo || 'text'}" data-campo="${chave}" value="${valor}" /></div>`;
+  }
+
+  function campoSelect(r, chave, label, opcoes) {
+    const valor = (r[chave] ?? '').toString();
+    const lista = opcoes.includes(valor) || !valor ? opcoes : [valor, ...opcoes];
+    return `<div class="campo"><label>${label}</label>
+      <select data-campo="${chave}">
+        ${lista.map(o => `<option value="${o}"${o === valor ? ' selected' : ''}>${o}</option>`).join('')}
+      </select></div>`;
+  }
+
+  function fotoThumb(id, url, duplicada) {
+    const fid = idFotoDrive(url);
+    const preview = fid ? `https://drive.google.com/thumbnail?id=${fid}&sz=w200` : url;
+    return `
+      <div class="foto-thumb${duplicada ? ' duplicada' : ''}">
+        <img src="${preview}" loading="lazy" />
+        <div class="foto-actions">
+          <label title="Substituir">
+            🔄
+            <input type="file" accept="image/jpeg,image/png" style="display:none"
+              onchange="substituirFoto('${id}', '${url.replace(/'/g,"\\'")}', this)" />
+          </label>
+          <button title="Remover" onclick="removerFoto('${id}', '${url.replace(/'/g,"\\'")}')">🗑</button>
+        </div>
+      </div>`;
+  }
+
+  function toggleCard(id) {
+    if (cardsAbertos.has(id)) cardsAbertos.delete(id);
+    else cardsAbertos.add(id);
+    document.getElementById('card-' + id).classList.toggle('aberto');
+  }
+
+  // ── AÇÕES ─────────────────────────────────────────────────────────────────
+  async function salvarRegistro(id) {
+    const card = document.getElementById('card-' + id);
+    const campos = {};
+    card.querySelectorAll('[data-campo]').forEach(el => {
+      campos[el.dataset.campo] = el.value;
+    });
+
+    try {
+      await chamarAdmin('atualizarRegistro', { id, campos });
+      const r = registros.find(x => x.id === id);
+      Object.assign(r, campos);
+      showToast('✅ Registro atualizado.', 'success');
+      render();
+    } catch (err) {
+      showToast('❌ ' + err.message, 'error');
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res({ name: file.name, type: file.type, data: r.result.split(',')[1] });
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function adicionarFoto(id, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+      const arquivo = await fileToBase64(file);
+      const json = await chamarAdmin('adicionarFoto', { id, arquivo });
+      atualizarFotosLocal(id, json.fotos);
+      showToast('✅ Foto adicionada.', 'success');
+    } catch (err) {
+      showToast('❌ ' + err.message, 'error');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  async function substituirFoto(id, urlAntiga, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+      const arquivo = await fileToBase64(file);
+      const json = await chamarAdmin('substituirFoto', { id, urlAntiga, arquivo });
+      atualizarFotosLocal(id, json.fotos);
+      showToast('✅ Foto substituída.', 'success');
+    } catch (err) {
+      showToast('❌ ' + err.message, 'error');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  async function removerFoto(id, url) {
+    if (!confirm('Remover esta foto? Ela será movida para a lixeira do Drive.')) return;
+
+    try {
+      const json = await chamarAdmin('removerFoto', { id, url });
+      atualizarFotosLocal(id, json.fotos);
+      showToast('🗑 Foto removida.', '');
+    } catch (err) {
+      showToast('❌ ' + err.message, 'error');
+    }
+  }
+
+  function atualizarFotosLocal(id, fotos) {
+    const r = registros.find(x => x.id === id);
+    r.fotos = fotos;
+    cardsAbertos.add(id);
+    render();
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type ? 'show ' + type : 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+</script>
+
+</body>
+</html>

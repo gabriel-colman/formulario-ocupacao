@@ -164,6 +164,53 @@ Implantar
 
 ---
 
+## Painel Administrativo
+
+🔗 https://gabriel-colman.github.io/formulario-ocupacao/admin.html
+
+Página separada (`admin.html`) para corrigir registros já enviados: editar
+campos, e adicionar/substituir/remover fotos (útil para os casos de
+registros sem foto ou com fotos duplicadas). Acesso restrito por login
+Google — o backend verifica o token e confere o e-mail contra uma lista de
+administradores autorizados antes de aceitar qualquer alteração.
+
+### Configuração (passo único, feito fora do repositório)
+
+1. **Criar um OAuth Client ID** no [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Tipo: *Web application*.
+   - *Authorized JavaScript origins*: `https://gabriel-colman.github.io`.
+   - Copiar o Client ID gerado (formato `algo.apps.googleusercontent.com`).
+2. Colar esse Client ID na constante `GOOGLE_CLIENT_ID` no topo do
+   `admin.html`.
+3. No editor do Apps Script → **Configurações do projeto** → **Propriedades
+   do script**, adicionar:
+   - `GOOGLE_CLIENT_ID` → o mesmo Client ID do passo 1.
+   - `ADMIN_EMAILS` → e-mails autorizados, separados por vírgula.
+4. **Implantar → Gerenciar implantações → editar (ícone de lápis) → Nova
+   versão** — atualiza o código sem trocar a `SCRIPT_URL` já usada pelo
+   formulário público.
+5. Rodar a função `backfillIdsEPastas()` **uma vez**, manualmente, pelo
+   editor do Apps Script (selecionar a função → Executar). Ela gera um ID
+   único e resolve a pasta do Drive de cada um dos registros já existentes,
+   necessário para o painel saber o que editar. É idempotente — pode rodar
+   de novo sem duplicar nada.
+
+### Como funciona
+
+- O `doPost` do Apps Script agora aceita um campo `action` no payload.
+  Sem `action` (ou `action: "submeter"`) segue exatamente o fluxo público
+  de sempre, sem autenticação — isso não mudou.
+- Ações administrativas (`listarRegistros`, `atualizarRegistro`,
+  `adicionarFoto`, `substituirFoto`, `removerFoto`) exigem um `idToken`
+  válido (JWT do Google Sign-In), verificado no servidor contra o endpoint
+  `oauth2.googleapis.com/tokeninfo` e contra a lista `ADMIN_EMAILS`.
+- Toda alteração feita pelo painel é registrada na aba `LogAdmin` da
+  planilha (quem, quando, o quê).
+- Fotos removidas ou substituídas vão para a lixeira do Drive (recuperáveis
+  por 30 dias), nunca são apagadas na hora.
+
+---
+
 ## Problemas Encontrados
 
 ### CORS — GitHub Pages × Apps Script
@@ -190,6 +237,8 @@ e ajuste no tratamento do `fetch()`.
 formulario-ocupacao/
 │
 ├── formulario-ocupacao.html
+├── admin.html
+├── relatorio_ocupacao.html
 ├── README.md
 ```
 
