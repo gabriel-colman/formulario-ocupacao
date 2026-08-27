@@ -171,25 +171,22 @@ Implantar
 Página separada (`admin.html`) para corrigir registros já enviados: editar
 campos, e adicionar/substituir/remover fotos (útil para os casos de
 registros sem foto ou com fotos duplicadas). Acesso restrito por login
-Google — o backend verifica o token e confere o e-mail contra uma lista de
-administradores autorizados antes de aceitar qualquer alteração.
+tradicional (e-mail + senha) — as credenciais ficam cadastradas diretamente
+no `Código.gs`, sem nenhuma dependência de conta Google.
 
 ### Configuração (passo único, feito fora do repositório)
 
-1. **Criar um OAuth Client ID** no [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
-   - Tipo: *Web application*.
-   - *Authorized JavaScript origins*: `https://gabriel-colman.github.io`.
-   - Copiar o Client ID gerado (formato `algo.apps.googleusercontent.com`).
-2. Colar esse Client ID na constante `GOOGLE_CLIENT_ID` no topo do
-   `admin.html`.
-3. No editor do Apps Script → **Configurações do projeto** → **Propriedades
-   do script**, adicionar:
-   - `GOOGLE_CLIENT_ID` → o mesmo Client ID do passo 1.
-   - `ADMIN_EMAILS` → e-mails autorizados, separados por vírgula.
-4. **Implantar → Gerenciar implantações → editar (ícone de lápis) → Nova
+1. No editor do Apps Script, abrir `Código.gs` e rodar a função
+   `gerarHashSenha()` (edite a senha na própria função antes de rodar) →
+   **Executar** → ver o resultado em **Ver → Registros/Logger**. Isso gera o
+   hash SHA-256 da senha escolhida.
+2. Editar a constante `ADMIN_CREDENTIALS` no topo do `Código.gs`, adicionando
+   um par `"email@dominio.com": "hash-gerado-no-passo-1"` para cada
+   administrador.
+3. **Implantar → Gerenciar implantações → editar (ícone de lápis) → Nova
    versão** — atualiza o código sem trocar a `SCRIPT_URL` já usada pelo
    formulário público.
-5. Rodar a função `backfillIdsEPastas()` **uma vez**, manualmente, pelo
+4. Rodar a função `backfillIdsEPastas()` **uma vez**, manualmente, pelo
    editor do Apps Script (selecionar a função → Executar). Ela gera um ID
    único e resolve a pasta do Drive de cada um dos registros já existentes,
    necessário para o painel saber o que editar. É idempotente — pode rodar
@@ -200,10 +197,12 @@ administradores autorizados antes de aceitar qualquer alteração.
 - O `doPost` do Apps Script agora aceita um campo `action` no payload.
   Sem `action` (ou `action: "submeter"`) segue exatamente o fluxo público
   de sempre, sem autenticação — isso não mudou.
+- A ação `login` recebe `email`/`senha`, confere contra `ADMIN_CREDENTIALS`
+  (hash SHA-256, nunca senha em texto puro) e devolve um `token` de sessão
+  válido por 6 horas (guardado em `CacheService`, no servidor).
 - Ações administrativas (`listarRegistros`, `atualizarRegistro`,
-  `adicionarFoto`, `substituirFoto`, `removerFoto`) exigem um `idToken`
-  válido (JWT do Google Sign-In), verificado no servidor contra o endpoint
-  `oauth2.googleapis.com/tokeninfo` e contra a lista `ADMIN_EMAILS`.
+  `adicionarFoto`, `substituirFoto`, `removerFoto`) exigem esse `token` no
+  payload; sem um token válido a ação é recusada.
 - Toda alteração feita pelo painel é registrada na aba `LogAdmin` da
   planilha (quem, quando, o quê).
 - Fotos removidas ou substituídas vão para a lixeira do Drive (recuperáveis
